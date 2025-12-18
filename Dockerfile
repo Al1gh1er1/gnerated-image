@@ -14,20 +14,20 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 # install uv
-RUN pip install uv
+RUN python3.11 -m pip install --no-cache-dir uv
 
 # create venv
 ENV PATH="/.venv/bin:${PATH}"
 RUN uv venv --python 3.11 /.venv
 
 # install dependencies
-RUN uv pip install torch --extra-index-url https://download.pytorch.org/whl/cu121 diffusers transformers accelerate safetensors xformers==0.0.23 runpod numpy==1.26.3 scipy triton huggingface-hub hf_transfer setuptools Pillow
+RUN /.venv/bin/python -m pip install --no-cache-dir torch --extra-index-url https://download.pytorch.org/whl/cu121 diffusers transformers accelerate safetensors xformers==0.0.23 runpod numpy==1.26.3 scipy triton huggingface-hub hf_transfer setuptools Pillow
 
 # copy files
 COPY download_weights.py schemas.py handler.py test_input.json /
 
 # download the weights from hugging face
-RUN python /download_weights.py
+RUN /.venv/bin/python /download_weights.py
 
 # run the handler
-CMD python -u /handler.py
+CMD ["/.venv/bin/python", "-u", "/handler.py"]
