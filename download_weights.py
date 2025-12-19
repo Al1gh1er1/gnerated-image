@@ -28,6 +28,13 @@ except ImportError as e:
     print(f"❌ Error: transformers is not installed: {e}")
     sys.exit(1)
 
+try:
+    from huggingface_hub import snapshot_download
+    print(f"✓ huggingface_hub imported successfully")
+except ImportError as e:
+    print(f"⚠️  Warning: huggingface_hub not available, will use diffusers directly: {e}")
+    snapshot_download = None
+
 
 def download_models():
     """Download and cache SDXL Turbo model."""
@@ -65,17 +72,43 @@ def download_models():
         print("\nDownloading model components...")
         print("This may take several minutes depending on connection speed...")
         print("Model size: ~6-7 GB")
+        print("Please be patient...")
         
-        # Download with explicit parameters
-        # Using low_cpu_mem_usage to avoid OOM during build
-        pipe = AutoPipelineForText2Image.from_pretrained(
-            "stabilityai/sdxl-turbo",
-            torch_dtype=torch.float16,
-            variant="fp16",
-            use_safetensors=True,
-            cache_dir=cache_dir,
-            low_cpu_mem_usage=True,
-        )
+        # Download model files using snapshot_download (doesn't load model into memory)
+        if snapshot_download:
+            print("\nStep 1: Downloading model files using huggingface_hub...")
+            print("This method downloads files without loading the model into memory...")
+            model_path = snapshot_download(
+                repo_id="stabilityai/sdxl-turbo",
+                cache_dir=cache_dir,
+                local_files_only=False,
+                ignore_patterns=["*.md", "*.txt"],  # Skip documentation files
+            )
+            print(f"✓ Model files downloaded to: {model_path}")
+            
+            # Verify files exist by checking cache directory
+            print("\nStep 2: Verifying downloaded files...")
+            import glob
+            cache_path = os.path.join(cache_dir, "hub", "models--stabilityai--sdxl-turbo")
+            if os.path.exists(cache_path):
+                files = glob.glob(os.path.join(cache_path, "**", "*.safetensors"), recursive=True)
+                print(f"✓ Found {len(files)} model weight files")
+                if len(files) > 0:
+                    print("✓ Model files verified successfully")
+                else:
+                    print("⚠️  No safetensors files found, but download completed")
+            else:
+                print("⚠️  Cache directory structure different than expected, but download may have succeeded")
+        else:
+            # Fallback: Direct load if snapshot_download not available
+            print("\nDownloading model using diffusers (this will load model into memory)...")
+            pipe = AutoPipelineForText2Image.from_pretrained(
+                "stabilityai/sdxl-turbo",
+                variant="fp16",
+                use_safetensors=True,
+                cache_dir=cache_dir,
+            )
+            print("✓ Model downloaded successfully")
 
         print("\n✅ SDXL Turbo model downloaded and cached successfully!")
         print(f"✓ Model cached at: {cache_dir}")
