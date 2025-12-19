@@ -26,6 +26,10 @@ RUN /.venv/bin/python -m pip install --no-cache-dir torch --extra-index-url http
 # copy files
 COPY download_weights.py schemas.py handler.py test_input.json /
 
+# set environment variables for Hugging Face downloads
+ENV HF_HUB_ENABLE_HF_TRANSFER=1
+ENV HF_HOME=/root/.cache/huggingface
+
 # download the weights from hugging face
 RUN /.venv/bin/python /download_weights.py
 
