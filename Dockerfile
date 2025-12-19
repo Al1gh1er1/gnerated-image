@@ -13,12 +13,12 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     git \
     && rm -rf /var/lib/apt/lists/*
 
-# install uv
-RUN python3.11 -m pip install --no-cache-dir uv
-
-# create venv
+# create venv using standard venv module (includes pip by default)
 ENV PATH="/.venv/bin:${PATH}"
-RUN uv venv --python 3.11 /.venv
+RUN python3.11 -m venv /.venv
+
+# upgrade pip in venv
+RUN /.venv/bin/python -m pip install --upgrade pip --no-cache-dir
 
 # install dependencies
 RUN /.venv/bin/python -m pip install --no-cache-dir torch --extra-index-url https://download.pytorch.org/whl/cu121 diffusers transformers accelerate safetensors xformers==0.0.23 runpod numpy==1.26.3 scipy triton huggingface-hub hf_transfer setuptools Pillow
